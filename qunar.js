@@ -301,7 +301,7 @@ function loop_list_item_page_download(item, index, callback) {
             console.log('分析内容页面: %s'.green, item.Url.green.bold);
 
             if (error) {
-                console.error(('[' + item.CNName + ']').red.bold.inverse + ' ' + err.message.red);
+                console.error(('[' + item.CNName + ']').red.bold.inverse + ' ' + error.message.red);
 
                 //保存错误数据，以后再说
                 item.Error = error.message
@@ -315,7 +315,7 @@ function loop_list_item_page_download(item, index, callback) {
 
             // IP被限制，换代理
             if (use_proxy) {
-                if ($("body").text().indexOf("IP访问频率过高") != -1) {
+                if (typeof $ != 'function' || $("body").text().indexOf("IP访问频率过高") != -1) {
                     proxy_limited = true
                     done();
                     return callback();
