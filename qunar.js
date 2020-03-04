@@ -240,30 +240,9 @@ function loop_list_item_image(next) {
 function loop_list_item_image_download(item, index, callback) {
     mkdirp.sync(output);
 
-    var fileFullPath = path.join(output, item.Id + '.jpg');
+    var full_path = path.join(output, item.Id + '.jpg');
 
-    fs.access(fileFullPath, fs.F_OK, function (err) {
-        if (err) {
-            c.queue([{
-                uri: item.Photo,
-                encoding: null,
-                jQuery: false, // set false to suppress warning message.
-                callback: function (err, res, done) {
-                    if (err) {
-                        console.error(('[' + item.CNName + ']').red.bold.inverse + '[图片]'.yellow.inverse, err.message.red);
-                    } else {
-                        fs.createWriteStream(fileFullPath).write(res.body);
-                        console.error(('[' + item.CNName + ']').green.bold.inverse + '[图片]'.yellow.inverse, fileFullPath);
-                    }
-                    done();
-                    callback();
-                }
-            }])
-        } else {
-            console.log(('[' + item.CNName + ']').green.bold.inverse + '[图片]'.yellow.inverse, 'file already exists, skip!'.yellow);
-            callback();
-        }
-    })
+    handle_image_download(item.Photo, full_path, item.CNName, callback)
 }
 
 function loop_list_item_page(next) {
@@ -385,14 +364,14 @@ function loop_list_item_page_download(item, index, callback) {
             //旅游导图
             var $imgs = $("#lydt img")
             if ($imgs.length > 0) {
-                var imgLinks = []
+                var img_links = []
                 for (var i = 0; i < $imgs.length; i++) {
-                    imgLinks.push({
+                    img_links.push({
                         Src: $($imgs[i]).attr("src"),
                         Id: item.Id
                     })
                 }
-                loop_list_item_page_image(item, imgLinks, callback);
+                loop_list_item_page_image(item, img_links, callback);
             } else {
                 callback();
             }
@@ -400,11 +379,11 @@ function loop_list_item_page_download(item, index, callback) {
     }])
 }
 
-function loop_list_item_page_image(item, imgLinks, callback) {
+function loop_list_item_page_image(item, img_links, callback) {
     console.log('===== 即将下载 %s 图片数据 ====='.green, item.CNName.yellow.inverse);
 
     async.forEachOfLimit(
-        imgLinks,
+        img_links,
         parallel,
         loop_list_item_page_image_download,
         function (err) {
@@ -422,27 +401,40 @@ function loop_list_item_page_image_download(item, index, callback) {
 
     mkdirp.sync(c_output);
 
-    var fileFullPath = path.join(c_output, index + '.jpg');
+    var full_path = path.join(c_output, index + '.jpg');
 
-    fs.access(fileFullPath, fs.F_OK, function (err) {
+    handle_image_download(item.Src, full_path, item.Id + '-' + index, callback)
+}
+
+function handle_image_download(img_url, full_path, message, callback) {
+    fs.access(full_path, fs.F_OK, function (err) {
         if (err) {
             c.queue([{
-                uri: item.Src,
+                uri: img_url,
                 encoding: null,
                 jQuery: false, // set false to suppress warning message.
                 callback: function (err, res, done) {
                     if (err) {
-                        console.error(('[' + item.Id + '-' + index + ']').red.bold.inverse + '[图片]'.yellow.inverse, err.message.red);
+                        console.error(('[' + message + ']').red.bold.inverse + '[图片]'.yellow.inverse, err.message.red);
                     } else {
-                        fs.createWriteStream(fileFullPath).write(res.body);
-                        console.error(('[' + item.Id + '-' + index + ']').green.bold.inverse + '[图片]'.yellow.inverse, fileFullPath);
+                        var writeStream = fs.createWriteStream(full_path)
+
+                        writeStream.on('error', (err) => {
+                            console.error(('[' + message + ']').red.bold.inverse + '[图片]'.yellow.inverse, err.message.red);
+                        });
+
+                        writeStream.write(res.body);
+
+                        writeStream.end();
+
+                        console.log(('[' + message + ']').green.bold.inverse + '[图片]'.yellow.inverse, full_path);
                     }
                     done();
                     callback();
                 }
             }])
         } else {
-            console.log(('[' + item.Id + '-' + index + ']').green.bold.inverse + '[图片]'.yellow.inverse, 'file already exists, skip!'.yellow);
+            console.log(('[' + message + ']').green.bold.inverse + '[图片]'.yellow.inverse, 'file already exists, skip!'.yellow);
             callback();
         }
     })
