@@ -130,14 +130,14 @@ function save_points(item) {
 
 exports.save_points = save_points
 
-function get_points(page_index, callback) {
+function get_points(page_index, skip_count, callback) {
     pool.getConnection(function (err, connection) {
         if (err) {
             console.error(err)
         }
 
         var size = 25
-        var offset = (page_index - 1) * size
+        var offset = (page_index - 1) * size + skip_count
 
         connection.query("SELECT * FROM points WHERE Location = '' OR Location IS NULL ORDER BY Id LIMIT ?,? ", [offset, size], function (err, result) {
             if (err) {

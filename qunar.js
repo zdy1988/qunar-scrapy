@@ -22,7 +22,8 @@ program
     .option('-r, --retry <num>', '设置重试次数，默认值：5', 5)
     .option('-t, --timeout <num>', '自定义连接超时时间(毫秒)。默认值：30000毫秒', 30000)
     .option('-o, --output <file_path>', '设置图片抓取结果的保存位置，默认为当前用户的主目录下的 magnets 文件夹', path.join('D:\\Magnets\\', 'qunar'))
-    .option('-x, --proxy', '设置使用代理')
+    .option('-x, --proxy <url>', '使用代理服务器, 例：-x http://127.0.0.1:8087')
+    .option('-s, --skip <num>', '设置跳过景点数据数，用于多开抓取，默认值：0', 0)
     .parse(process.argv);
 
 var mode = program.mode
@@ -31,9 +32,10 @@ var page_index = parseInt(program.index);
 var retries = parseInt(program.retry);
 var timeout = parseInt(program.timeout);
 var output = program.output.replace(/['"]/g, '');
-var use_proxy = program.proxy || false
+var skip_count = parseInt(program.skip)
+var use_proxy = !!program.proxy || false
 
-var proxy_path = null;
+var proxy_path = program.proxy || null;
 var proxy_limited = false
 
 mkdirp.sync(output);
@@ -397,12 +399,11 @@ function loop_list_item_page_image(item, img_links, callback) {
 }
 
 function loop_list_item_page_image_download(item, index, callback) {
-    var c_output = path.join(output, item.Id)
+    var c_output = path.join(output, item.Id + "")
 
     mkdirp.sync(c_output);
 
     var full_path = path.join(c_output, index + '.jpg');
-
     handle_image_download(item.Src, full_path, item.Id + '-' + index, callback)
 }
 
@@ -459,7 +460,7 @@ function loop_points_list(callback) {
         return callback("proxy_limited", false);
     }
 
-    database.get_points(page_index, function (result) {
+    database.get_points(page_index, skip_count, function (result) {
         if (result && result.length > 0) {
             cur_loop_list = result
             callback(null, true)
